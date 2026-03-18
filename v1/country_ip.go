@@ -3,7 +3,6 @@ package v1
 import (
 	"bufio"
 	"fmt"
-	"maps"
 	"net/netip"
 	"os"
 	"strings"
@@ -56,7 +55,7 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 	}
 	fmt.Println("done")
 
-	c.subnetCountries = maps.Clone(subnetCountries)
+	c.subnetCountries = subnetCountries
 	return nil
 }
 

@@ -57,12 +57,14 @@ func TestCountryIPDataIPLookupV6(t *testing.T) {
 }
 
 func BenchmarkIPLookupV1(b *testing.B) {
-	octet := 0
 	countryIP, err := v1.NewCountryIPData()
 	if err != nil {
 		fmt.Printf("new CountryIPData: %v\n", err)
 		return
 	}
+
+	b.ReportAllocs()
+	octet := 0
 	for b.Loop() {
 		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
 		octet += 10
@@ -73,12 +75,14 @@ func BenchmarkIPLookupV1(b *testing.B) {
 }
 
 func BenchmarkIPLookupV6(b *testing.B) {
-	octet := 0
 	countryIP, err := v6.NewCountryIPData()
 	if err != nil {
 		fmt.Printf("new CountryIPData: %v\n", err)
 		return
 	}
+
+	b.ReportAllocs()
+	octet := 0
 	for b.Loop() {
 		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
 		octet += 10
