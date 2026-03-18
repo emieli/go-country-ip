@@ -4,7 +4,7 @@ import (
 	v1 "country-ip/v1"
 	v2 "country-ip/v2"
 	v3 "country-ip/v3"
-	v6 "country-ip/v6"
+	v4 "country-ip/v4"
 	"fmt"
 	"runtime"
 	"testing"
@@ -76,7 +76,7 @@ func TestCountryIPDataIPLookupV3(t *testing.T) {
 }
 
 func TestCountryIPDataIPLookupV6(t *testing.T) {
-	countryIP, err := v6.NewCountryIPData()
+	countryIP, err := v4.NewCountryIPData()
 	if err != nil {
 		t.Fatalf("new CountryIPData: %v", err)
 	}
@@ -159,7 +159,7 @@ func BenchmarkIPLookupV3(b *testing.B) {
 }
 
 func BenchmarkIPLookupV6(b *testing.B) {
-	countryIP, err := v6.NewCountryIPData()
+	countryIP, err := v4.NewCountryIPData()
 	if err != nil {
 		fmt.Printf("new CountryIPData: %v\n", err)
 		return
