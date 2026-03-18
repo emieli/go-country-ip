@@ -41,7 +41,6 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 	if err != nil {
 		return fmt.Errorf("open ipinfo file: %v", err)
 	}
-	fmt.Println("read ipinfo file")
 
 	var (
 		subnetCountries = make([]IPv4SubnetCountry, 0, 1_500_000)
@@ -82,7 +81,6 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 			countryCode: countryCode,
 		})
 	}
-	fmt.Println("done")
 
 	subnets := make([]IPv4SubnetCountry, len(subnetCountries))
 	copy(subnets, subnetCountries)

@@ -1,8 +1,7 @@
-// package v1 is the unoptimized and naive implementation.
-// We put all subnets in a giant map where the key is the subnet and
-// the value is the country name. This works, but is relatively slow.
-// But hey, we have to start somewhere.
-package v1
+// package v2 improves on v1 by splitting the prefixes into smaller chunks based on the first byte.
+// So instead of one map containing 1M+ prefix entries, we have ~240 maps that contain ~5000 entries each.
+// Iterating through 5k prefixes is way faster than 1M+.
+package v2
 
 import (
 	"bufio"
@@ -13,26 +12,23 @@ import (
 )
 
 type CountryIPData struct {
-	subnetCountries map[netip.Prefix]string
+	subnetCountries map[byte]map[netip.Prefix]string
 }
 
 func NewCountryIPData() (*CountryIPData, error) {
 	c := new(CountryIPData)
+	c.subnetCountries = make(map[byte]map[netip.Prefix]string)
 	if err := c.parseIPInfoCSV(); err != nil {
 		return nil, fmt.Errorf("parse ipinfo: %w", err)
 	}
 	return c, nil
 }
 
-// slice of uint32, use "binary" search to find entry quickly?
 func (c *CountryIPData) parseIPInfoCSV() error {
-
 	ipInfoCSV, err := os.Open("ipinfo_lite.csv")
 	if err != nil {
 		return fmt.Errorf("open ipinfo file: %v", err)
 	}
-
-	subnetCountries := make(map[netip.Prefix]string, 1_500_000)
 	scanner := bufio.NewScanner(ipInfoCSV)
 
 	for scanner.Scan() {
@@ -53,11 +49,15 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 			break // We only care about ipv4 subnets
 		}
 
+		firstByte := subnet.Addr().As4()[0]
+		if _, exist := c.subnetCountries[firstByte]; !exist {
+			c.subnetCountries[firstByte] = make(map[netip.Prefix]string)
+		}
+
 		country := fields[1]
-		subnetCountries[subnet] = country
+		c.subnetCountries[firstByte][subnet] = country
 	}
 
-	c.subnetCountries = subnetCountries
 	return nil
 }
 
@@ -66,10 +66,20 @@ func (c *CountryIPData) AddrCountry(ip string) (country string) {
 	if err != nil {
 		return ""
 	}
-	for subnet, country := range c.subnetCountries {
-		if subnet.Contains(addr) {
-			return country
+	firstByte := uint8(addr.As4()[0])
+	for firstByte > 0 {
+		// 		fmt.Println(firstByte)
+		subnetCountries, exist := c.subnetCountries[firstByte]
+		if !exist {
+			firstByte -= 1
+			continue
 		}
+		for subnet, country := range subnetCountries {
+			if subnet.Contains(addr) {
+				return country
+			}
+		}
+		return ""
 	}
 	return ""
 }
