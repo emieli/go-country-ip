@@ -1,6 +1,7 @@
 package main
 
 import (
+	v1 "country-ip/v1"
 	v6 "country-ip/v6"
 	"fmt"
 	"testing"
@@ -27,7 +28,21 @@ var ipTests = []struct {
 	{"83.250.95.17", "Sweden"},
 }
 
-func TestCountryIPDataIPLookup(t *testing.T) {
+func TestCountryIPDataIPLookupV1(t *testing.T) {
+	countryIP, err := v1.NewCountryIPData()
+	if err != nil {
+		t.Fatalf("new CountryIPData: %v", err)
+	}
+	for _, tt := range ipTests {
+		t.Run(tt.IP, func(t *testing.T) {
+			if got, want := countryIP.AddrCountry(tt.IP), tt.country; got != want {
+				t.Errorf("%s got %s, want %s", tt.IP, got, want)
+			}
+		})
+	}
+}
+
+func TestCountryIPDataIPLookupV6(t *testing.T) {
 	countryIP, err := v6.NewCountryIPData()
 	if err != nil {
 		t.Fatalf("new CountryIPData: %v", err)
@@ -41,7 +56,23 @@ func TestCountryIPDataIPLookup(t *testing.T) {
 	}
 }
 
-func BenchmarkIPLookup(b *testing.B) {
+func BenchmarkIPLookupV1(b *testing.B) {
+	octet := 0
+	countryIP, err := v1.NewCountryIPData()
+	if err != nil {
+		fmt.Printf("new CountryIPData: %v\n", err)
+		return
+	}
+	for b.Loop() {
+		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
+		octet += 10
+		if octet > 230 {
+			octet = 0
+		}
+	}
+}
+
+func BenchmarkIPLookupV6(b *testing.B) {
 	octet := 0
 	countryIP, err := v6.NewCountryIPData()
 	if err != nil {
