@@ -76,7 +76,7 @@ func TestCountryIPDataIPLookupV3(t *testing.T) {
 	}
 }
 
-func TestCountryIPDataIPLookupV6(t *testing.T) {
+func TestCountryIPDataIPLookupV4(t *testing.T) {
 	countryIP, err := v4.NewCountryIPData()
 	if err != nil {
 		t.Fatalf("new CountryIPData: %v", err)
@@ -105,8 +105,8 @@ func BenchmarkIPLookupV1(b *testing.B) {
 	octet := 0
 	for b.Loop() {
 		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
-		octet += 10
-		if octet > 230 {
+		octet++
+		if octet > 239 {
 			octet = 0
 		}
 	}
@@ -128,8 +128,8 @@ func BenchmarkIPLookupV2(b *testing.B) {
 	octet := 0
 	for b.Loop() {
 		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
-		octet += 10
-		if octet > 230 {
+		octet++
+		if octet > 239 {
 			octet = 0
 		}
 	}
@@ -151,15 +151,15 @@ func BenchmarkIPLookupV3(b *testing.B) {
 	octet := 0
 	for b.Loop() {
 		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
-		octet += 10
-		if octet > 230 {
+		octet++
+		if octet > 239 {
 			octet = 0
 		}
 	}
 	b.Log("avg time per lookup:", b.Elapsed()/time.Duration(b.N))
 }
 
-func BenchmarkIPLookupV6(b *testing.B) {
+func BenchmarkIPLookupV4(b *testing.B) {
 	countryIP, err := v4.NewCountryIPData()
 	if err != nil {
 		fmt.Printf("new CountryIPData: %v\n", err)
@@ -174,8 +174,8 @@ func BenchmarkIPLookupV6(b *testing.B) {
 	octet := 0
 	for b.Loop() {
 		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
-		octet += 10
-		if octet > 230 {
+		octet++
+		if octet > 239 {
 			octet = 0
 		}
 	}

@@ -69,7 +69,6 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		}
 		c.subnetCountryCodes[firstByte][subnet] = countryCode
 	}
-	fmt.Println(len(c.countriesByCC))
 	return nil
 }
 
