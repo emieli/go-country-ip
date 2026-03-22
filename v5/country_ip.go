@@ -1,4 +1,4 @@
-package v4
+package v5
 
 import (
 	"bufio"
@@ -83,15 +83,48 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		})
 	}
 
-	// Create a new slice containing the exact number of entries
-	subnets := make([]IPv4SubnetCountry, len(subnetCountries))
-	copy(subnets, subnetCountries)
-
 	// Sort entries in ascending order by the netAddr field
-	slices.SortFunc(subnets, func(a, b IPv4SubnetCountry) int {
+	slices.SortFunc(subnetCountries, func(a, b IPv4SubnetCountry) int {
 		return int(a.netAddr - b.netAddr)
 	})
-	c.SubnetCountries = subnets
+
+	// Countries tend to use IP-ranges after each other.
+	// Combining adjacent ranges further reduce the number of entries
+	combinedSubnets := make([]IPv4SubnetCountry, 0, len(subnetCountries))
+	combIdx := -1
+	for subnetIdx := range subnetCountries {
+		this := subnetCountries[subnetIdx]
+		if subnetIdx == 0 {
+			combinedSubnets = append(combinedSubnets, this)
+			combIdx++
+			continue
+		}
+
+		prev := subnetCountries[subnetIdx-1]
+		if prev.countryCode != this.countryCode || prev.lastAddr+1 != this.netAddr {
+			combinedSubnets = append(combinedSubnets, this)
+			combIdx++
+			continue
+		}
+
+		// 		// Debug info
+		// 		var cna, pla, tla [4]byte
+		// 		binary.BigEndian.PutUint32(cna[:], combinedSubnets[copyIdx].netAddr)
+		// 		binary.BigEndian.PutUint32(pla[:], prev.lastAddr)
+		// 		binary.BigEndian.PutUint32(tla[:], this.lastAddr)
+		// 		combNetIP := netip.AddrFrom4(cna)
+		// 		prevLastIP := netip.AddrFrom4(pla)
+		// 		thisLastIP := netip.AddrFrom4(tla)
+		// 		fmt.Println(combNetIP, prevLastIP, "->", thisLastIP)
+
+		// extend existing IP-range instead of adding another entry
+		combinedSubnets[combIdx].lastAddr = this.lastAddr
+	}
+
+	copyCombined := make([]IPv4SubnetCountry, len(combinedSubnets))
+	copy(copyCombined, combinedSubnets)
+
+	c.SubnetCountries = copyCombined
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	v2 "country-ip/v2"
 	v3 "country-ip/v3"
 	v4 "country-ip/v4"
+	v5 "country-ip/v5"
 	"fmt"
 	"runtime"
 	"testing"
@@ -22,6 +23,8 @@ var ipTests = []struct {
 	{"1.0.1.0", "China"},
 	{"1.7.168.174", "Singapore"},
 	{"1.255.240.200", "South Korea"},
+	{"1.200.0.200", "Taiwan"},
+	{"162.0.0.200", "Canada"},
 	{"10.10.10.10", ""},
 	{"100.100.100.100", ""},
 	{"192.168.123.123", ""},
@@ -78,6 +81,20 @@ func TestCountryIPDataIPLookupV3(t *testing.T) {
 
 func TestCountryIPDataIPLookupV4(t *testing.T) {
 	countryIP, err := v4.NewCountryIPData()
+	if err != nil {
+		t.Fatalf("new CountryIPData: %v", err)
+	}
+	for _, tt := range ipTests {
+		t.Run(tt.IP, func(t *testing.T) {
+			if got, want := countryIP.AddrCountry(tt.IP), tt.country; got != want {
+				t.Errorf("%s got %s, want %s", tt.IP, got, want)
+			}
+		})
+	}
+}
+
+func TestCountryIPDataIPLookupV5(t *testing.T) {
+	countryIP, err := v5.NewCountryIPData()
 	if err != nil {
 		t.Fatalf("new CountryIPData: %v", err)
 	}
@@ -170,6 +187,31 @@ func BenchmarkIPLookupV4(b *testing.B) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	b.Log("countryIP:", m.Alloc/1024/1024, "MB")
+	b.Log("entries:", len(countryIP.SubnetCountries))
+
+	octet := 0
+	for b.Loop() {
+		countryIP.AddrCountry(fmt.Sprintf("%d.%d.%d.%d", octet, octet, octet, octet))
+		octet++
+		if octet > 239 {
+			octet = 0
+		}
+	}
+	b.Log("avg time per lookup:", b.Elapsed()/time.Duration(b.N))
+}
+
+func BenchmarkIPLookupV5(b *testing.B) {
+	countryIP, err := v5.NewCountryIPData()
+	if err != nil {
+		fmt.Printf("new CountryIPData: %v\n", err)
+		return
+	}
+
+	runtime.GC()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	b.Log("countryIP:", m.Alloc/1024/1024, "MB")
+	b.Log("entries:", len(countryIP.SubnetCountries))
 
 	octet := 0
 	for b.Loop() {
