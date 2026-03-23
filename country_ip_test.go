@@ -117,7 +117,12 @@ func BenchmarkIPLookupV1(b *testing.B) {
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	b.Log("countryIP:", m.Alloc/1024/1024, "MB")
+	alloc := m.Alloc
+	b.Logf(
+		"countryIP: %d MB (%d bytes per entry)\n",
+		alloc/1024/1024,
+		alloc/uint64(countryIP.Length()),
+	)
 
 	octet := 0
 	for b.Loop() {
@@ -140,7 +145,12 @@ func BenchmarkIPLookupV2(b *testing.B) {
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	b.Log("countryIP:", m.Alloc/1024/1024, "MB")
+	alloc := m.Alloc
+	b.Logf(
+		"countryIP: %d MB (%d bytes per entry)\n",
+		alloc/1024/1024,
+		alloc/uint64(countryIP.Length()),
+	)
 
 	octet := 0
 	for b.Loop() {
@@ -163,7 +173,12 @@ func BenchmarkIPLookupV3(b *testing.B) {
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	b.Log("countryIP:", m.Alloc/1024/1024, "MB")
+	alloc := m.Alloc
+	b.Logf(
+		"countryIP: %d MB (%d bytes per entry)\n",
+		alloc/1024/1024,
+		alloc/uint64(countryIP.Length()),
+	)
 
 	octet := 0
 	for b.Loop() {
@@ -186,8 +201,12 @@ func BenchmarkIPLookupV4(b *testing.B) {
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	b.Log("countryIP:", m.Alloc/1024/1024, "MB")
-	b.Log("entries:", len(countryIP.SubnetCountries))
+	alloc := m.Alloc
+	b.Logf(
+		"countryIP: %d MB (%d bytes per entry)\n",
+		alloc/1024/1024,
+		alloc/uint64(countryIP.Length()),
+	)
 
 	octet := 0
 	for b.Loop() {
@@ -210,8 +229,12 @@ func BenchmarkIPLookupV5(b *testing.B) {
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	b.Log("countryIP:", m.Alloc/1024/1024, "MB")
-	b.Log("entries:", len(countryIP.SubnetCountries))
+	alloc := m.Alloc
+	b.Logf(
+		"countryIP: %d MB (%d bytes per entry)\n",
+		alloc/1024/1024,
+		alloc/uint64(countryIP.Length()),
+	)
 
 	octet := 0
 	for b.Loop() {

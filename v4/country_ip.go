@@ -11,7 +11,7 @@ import (
 )
 
 type CountryIPData struct {
-	SubnetCountries []IPv4SubnetCountry
+	subnetCountries []IPv4SubnetCountry
 	countriesByCC   map[[2]byte]string // An extra lookup but much more memory efficient
 }
 
@@ -33,6 +33,10 @@ func NewCountryIPData() (*CountryIPData, error) {
 		return nil, fmt.Errorf("parse ipinfo: %w", err)
 	}
 	return c, nil
+}
+
+func (c CountryIPData) Length() int {
+	return len(c.subnetCountries)
 }
 
 // slice of uint32, use "binary" search to find entry quickly?
@@ -91,7 +95,7 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 	slices.SortFunc(subnets, func(a, b IPv4SubnetCountry) int {
 		return int(a.netAddr - b.netAddr)
 	})
-	c.SubnetCountries = subnets
+	c.subnetCountries = subnets
 	return nil
 }
 
@@ -118,12 +122,12 @@ func (c *CountryIPData) AddrCountry(ip string) (country string) {
 		addrBytes = addr.As4()
 		addrInt   = binary.BigEndian.Uint32(addrBytes[:])
 		low       = 0
-		needle    = len(c.SubnetCountries) >> 1 // start searching in the middle of the slice
-		high      = len(c.SubnetCountries)
+		needle    = len(c.subnetCountries) >> 1 // start searching in the middle of the slice
+		high      = len(c.subnetCountries)
 	)
 
 	for range 30 {
-		subnet := c.SubnetCountries[needle]
+		subnet := c.subnetCountries[needle]
 		// 	fmt.Println("addr", subnet.netAddr, "needle", needle, "low", low, "high", high)
 
 		if high-low == 1 && low > 0 {

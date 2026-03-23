@@ -11,7 +11,7 @@ import (
 )
 
 type CountryIPData struct {
-	SubnetCountries []IPv4SubnetCountry
+	subnetCountries []IPv4SubnetCountry
 	countriesByCC   map[[2]byte]string // An extra lookup but much more memory efficient
 }
 
@@ -33,6 +33,10 @@ func NewCountryIPData() (*CountryIPData, error) {
 		return nil, fmt.Errorf("parse ipinfo: %w", err)
 	}
 	return c, nil
+}
+
+func (c CountryIPData) Length() int {
+	return len(c.subnetCountries)
 }
 
 // slice of uint32, use "binary" search to find entry quickly?
@@ -92,15 +96,15 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 	// Combining adjacent ranges further reduce the number of entries
 	combinedSubnets := make([]IPv4SubnetCountry, 0, len(subnetCountries))
 	combIdx := -1
-	for subnetIdx := range subnetCountries {
-		this := subnetCountries[subnetIdx]
-		if subnetIdx == 0 {
-			combinedSubnets = append(combinedSubnets, this)
+	for i := range subnetCountries {
+		if i == 0 {
+			combinedSubnets = append(combinedSubnets, subnetCountries[i])
 			combIdx++
 			continue
 		}
 
-		prev := subnetCountries[subnetIdx-1]
+		this := subnetCountries[i]
+		prev := subnetCountries[i-1]
 		if prev.countryCode != this.countryCode || prev.lastAddr+1 != this.netAddr {
 			combinedSubnets = append(combinedSubnets, this)
 			combIdx++
@@ -124,7 +128,7 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 	copyCombined := make([]IPv4SubnetCountry, len(combinedSubnets))
 	copy(copyCombined, combinedSubnets)
 
-	c.SubnetCountries = copyCombined
+	c.subnetCountries = copyCombined
 	return nil
 }
 
@@ -151,12 +155,12 @@ func (c *CountryIPData) AddrCountry(ip string) (country string) {
 		addrBytes = addr.As4()
 		addrInt   = binary.BigEndian.Uint32(addrBytes[:])
 		low       = 0
-		needle    = len(c.SubnetCountries) >> 1 // start searching in the middle of the slice
-		high      = len(c.SubnetCountries)
+		needle    = len(c.subnetCountries) >> 1 // start searching in the middle of the slice
+		high      = len(c.subnetCountries)
 	)
 
 	for range 30 {
-		subnet := c.SubnetCountries[needle]
+		subnet := c.subnetCountries[needle]
 		// 	fmt.Println("addr", subnet.netAddr, "needle", needle, "low", low, "high", high)
 
 		if high-low == 1 && low > 0 {

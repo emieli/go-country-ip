@@ -24,6 +24,10 @@ func NewCountryIPData() (*CountryIPData, error) {
 	return c, nil
 }
 
+func (c CountryIPData) Length() int {
+	return len(c.subnetCountries)
+}
+
 // slice of uint32, use "binary" search to find entry quickly?
 func (c *CountryIPData) parseIPInfoCSV() error {
 

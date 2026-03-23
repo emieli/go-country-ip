@@ -12,16 +12,24 @@ import (
 )
 
 type CountryIPData struct {
-	subnetCountries map[byte]map[netip.Prefix]string
+	subnetCountryCodesByFirstByte map[byte]map[netip.Prefix]string
 }
 
 func NewCountryIPData() (*CountryIPData, error) {
 	c := new(CountryIPData)
-	c.subnetCountries = make(map[byte]map[netip.Prefix]string)
+	c.subnetCountryCodesByFirstByte = make(map[byte]map[netip.Prefix]string)
 	if err := c.parseIPInfoCSV(); err != nil {
 		return nil, fmt.Errorf("parse ipinfo: %w", err)
 	}
 	return c, nil
+}
+
+func (c CountryIPData) Length() int {
+	var total int
+	for _, nestedMap := range c.subnetCountryCodesByFirstByte {
+		total += len(nestedMap)
+	}
+	return total
 }
 
 func (c *CountryIPData) parseIPInfoCSV() error {
@@ -50,12 +58,12 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		}
 
 		firstByte := subnet.Addr().As4()[0]
-		if _, exist := c.subnetCountries[firstByte]; !exist {
-			c.subnetCountries[firstByte] = make(map[netip.Prefix]string)
+		if _, exist := c.subnetCountryCodesByFirstByte[firstByte]; !exist {
+			c.subnetCountryCodesByFirstByte[firstByte] = make(map[netip.Prefix]string)
 		}
 
 		country := fields[1]
-		c.subnetCountries[firstByte][subnet] = country
+		c.subnetCountryCodesByFirstByte[firstByte][subnet] = country
 	}
 
 	return nil
@@ -69,7 +77,7 @@ func (c *CountryIPData) AddrCountry(ip string) (country string) {
 	firstByte := uint8(addr.As4()[0])
 	for firstByte > 0 {
 		// 		fmt.Println(firstByte)
-		subnetCountries, exist := c.subnetCountries[firstByte]
+		subnetCountries, exist := c.subnetCountryCodesByFirstByte[firstByte]
 		if !exist {
 			firstByte -= 1
 			continue
