@@ -1,6 +1,6 @@
 // package v2 improves on v1 by splitting the prefixes into smaller chunks based on the first byte.
-// So instead of one map containing 1M+ prefix entries, we have ~240 maps that contain ~5000 entries each.
-// Iterating through 5k prefixes is way faster than 1M+.
+// So instead of one map containing 1M+ prefix entries, we have ~240 maps that contain at most ~50k entries each.
+// Iterating through 50k prefixes is way faster than 1M+.
 package v2
 
 import (

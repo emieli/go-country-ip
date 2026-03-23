@@ -1,3 +1,8 @@
+// package v4 improves on v3 by using uint32 netaddr/lastAddr which reduces
+// memory usage per entry from ~78 bytes to 12 bytes. This is a massive boost
+// that lower memory usage from ~100MB to 15MB.
+// We also use binary search to quickly search through the []IPv4SubnetCountry,
+// performing lookups in less than 300 nanoseconds.
 package v4
 
 import (
@@ -15,10 +20,6 @@ type CountryIPData struct {
 	countriesByCC   map[[2]byte]string // An extra lookup but much more memory efficient
 }
 
-// Instead of storing the full country name as a string for each subnet,
-// we use the countryCode as a key lookup in the CountryIPData.countriesByCC map.
-// This way we only have to store the full name of each country once at the cost of
-// an extra map lookup. We went from ~220 MB memory usage to 51 MB doing this.
 type IPv4SubnetCountry struct {
 	netAddr     uint32
 	lastAddr    uint32
@@ -39,7 +40,6 @@ func (c CountryIPData) Length() int {
 	return len(c.subnetCountries)
 }
 
-// slice of uint32, use "binary" search to find entry quickly?
 func (c *CountryIPData) parseIPInfoCSV() error {
 
 	ipInfoCSV, err := os.Open("ipinfo_lite.csv")

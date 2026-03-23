@@ -1,3 +1,7 @@
+// package v5 improves on v4 by extending an existing IP-range if the
+// two subnets in the CSV file are adjacent and belong to the same country.
+// Thanks to this, we reduce the number of entries from 1,3M to 600K.
+// This reduces the memory usage down from 15MB to 7MB.
 package v5
 
 import (
@@ -15,10 +19,6 @@ type CountryIPData struct {
 	countriesByCC   map[[2]byte]string // An extra lookup but much more memory efficient
 }
 
-// Instead of storing the full country name as a string for each subnet,
-// we use the countryCode as a key lookup in the CountryIPData.countriesByCC map.
-// This way we only have to store the full name of each country once at the cost of
-// an extra map lookup. We went from ~220 MB memory usage to 51 MB doing this.
 type IPv4SubnetCountry struct {
 	netAddr     uint32
 	lastAddr    uint32
@@ -39,7 +39,6 @@ func (c CountryIPData) Length() int {
 	return len(c.subnetCountries)
 }
 
-// slice of uint32, use "binary" search to find entry quickly?
 func (c *CountryIPData) parseIPInfoCSV() error {
 
 	ipInfoCSV, err := os.Open("ipinfo_lite.csv")

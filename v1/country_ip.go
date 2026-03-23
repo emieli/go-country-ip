@@ -28,9 +28,7 @@ func (c CountryIPData) Length() int {
 	return len(c.subnetCountries)
 }
 
-// slice of uint32, use "binary" search to find entry quickly?
 func (c *CountryIPData) parseIPInfoCSV() error {
-
 	ipInfoCSV, err := os.Open("ipinfo_lite.csv")
 	if err != nil {
 		return fmt.Errorf("open ipinfo file: %v", err)

@@ -2,7 +2,7 @@
 // We save on space by storing each country name in a map where the key is the two-letter country-code
 // as a [2]byte. This ensures we only store each country name as a string once, but it means we have to
 // perform an extra map lookup to get the country name after we find the matching subnet.
-// This lowers memory usage from ~225MB to ~100MB.
+// This lowers memory usage from ~227MB to ~100MB.
 package v3
 
 import (
