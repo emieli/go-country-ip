@@ -140,6 +140,7 @@ func BenchmarkIPLookupV1(b *testing.B) {
 		alloc/1024/1024,
 		alloc/uint64(countryIP.Length()),
 	)
+	b.Logf("entries: %d\n", countryIP.Length())
 
 	octet := 0
 	for b.Loop() {
@@ -168,6 +169,7 @@ func BenchmarkIPLookupV2(b *testing.B) {
 		alloc/1024/1024,
 		alloc/uint64(countryIP.Length()),
 	)
+	b.Logf("entries: %d\n", countryIP.Length())
 
 	octet := 0
 	for b.Loop() {
@@ -196,6 +198,7 @@ func BenchmarkIPLookupV3(b *testing.B) {
 		alloc/1024/1024,
 		alloc/uint64(countryIP.Length()),
 	)
+	b.Logf("entries: %d\n", countryIP.Length())
 
 	octet := 0
 	for b.Loop() {
@@ -224,6 +227,7 @@ func BenchmarkIPLookupV4(b *testing.B) {
 		alloc/1024/1024,
 		alloc/uint64(countryIP.Length()),
 	)
+	b.Logf("entries: %d\n", countryIP.Length())
 
 	octet := 0
 	for b.Loop() {
@@ -252,6 +256,7 @@ func BenchmarkIPLookupV5(b *testing.B) {
 		alloc/1024/1024,
 		alloc/uint64(countryIP.Length()),
 	)
+	b.Logf("entries: %d\n", countryIP.Length())
 
 	octet := 0
 	for b.Loop() {
@@ -280,6 +285,7 @@ func BenchmarkIPLookupV6(b *testing.B) {
 		alloc/1024/1024,
 		alloc/uint64(countryIP.Length()),
 	)
+	b.Logf("entries: %d\n", countryIP.Length())
 
 	octet := 0
 	for b.Loop() {
