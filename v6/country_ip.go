@@ -5,15 +5,16 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"net/netip"
 	"os"
 	"strings"
 )
 
 type CountryIPData struct {
-	subnets       []IPv4SubnetCountry
-	root          Node
+	root          *Node
 	countriesByCC map[[2]byte]string // An extra lookup but much more memory efficient
+	length        int
 }
 
 type IPv4SubnetCountry struct {
@@ -23,8 +24,8 @@ type IPv4SubnetCountry struct {
 }
 
 type Node struct {
-	children    []Node
-	netAddr     uint32
+	children    []*Node
+	value       byte
 	countryCode [2]byte
 }
 
@@ -39,7 +40,7 @@ func NewCountryIPData() (*CountryIPData, error) {
 }
 
 func (c CountryIPData) Length() int {
-	return len(c.subnets)
+	return c.length
 }
 
 func (c *CountryIPData) parseIPInfoCSV() error {
@@ -132,59 +133,100 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		subnets[subnetsIdx].lastAddr = subnetCountry.lastAddr
 	}
 
-	copySubnets := make([]IPv4SubnetCountry, len(subnets))
-	copy(copySubnets, subnets)
-	c.subnets = copySubnets
+	// 224.0.0.0/4
+	subnets = append(subnets, IPv4SubnetCountry{
+		netAddr:     3758096384,
+		lastAddr:    math.MaxUint32,
+		countryCode: [2]byte{},
+	})
+
+	// Turn it into a tree structure
+	var firstChild, secondChild, thirdChild, fourthChild *Node
+	root := new(Node)
+	for _, subnet := range subnets {
+		var netAddrBytes, lastAddrBytes [4]byte
+		binary.BigEndian.PutUint32(netAddrBytes[:], subnet.netAddr)
+		binary.BigEndian.PutUint32(lastAddrBytes[:], subnet.lastAddr)
+
+		// 1st byte
+		var found bool
+		for _, firstChild = range root.children {
+			if netAddrBytes[0] == firstChild.value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			firstChild = &Node{value: netAddrBytes[0]}
+			root.children = append(root.children, firstChild)
+		}
+
+		// 2nd byte
+		found = false
+		for _, secondChild = range firstChild.children {
+			if netAddrBytes[1] == secondChild.value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			secondChild = &Node{value: netAddrBytes[1]}
+			firstChild.children = append(firstChild.children, secondChild)
+		}
+
+		// 3rd byte
+		found = false
+		for _, thirdChild = range secondChild.children {
+			if netAddrBytes[2] == thirdChild.value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			thirdChild = &Node{value: netAddrBytes[2]}
+			secondChild.children = append(secondChild.children, thirdChild)
+		}
+
+		// 4th byte
+		found = false
+		for _, fourthChild = range thirdChild.children {
+			if netAddrBytes[3] == fourthChild.value {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fourthChild = &Node{value: netAddrBytes[3], countryCode: subnet.countryCode}
+			thirdChild.children = append(thirdChild.children, fourthChild)
+		}
+		// 		fmt.Println(firstChild.value, secondChild.value, thirdChild.value, fourthChild.value)
+	}
+	c.length = len(subnets)
+
+	c.root = root
 	return nil
 }
 
-// Search iteratively but make the search-window smaller as we go.
-// Let's say we have a list of numbers from 0-100 and we want to find the value 60.
-// Low starts at 0, high starts at 100. (100+0) / 2 = 50. That's our needle.
-//
-// The process:
-// 1. 100+50 / 2 = 75. 75 is higher than 60. The new low is 50, the new high is 75.
-// 2.  75+50 / 2 = 63. The low remains at 50, the new high is 63.
-// 3.  63+50 / 2 = 57. ew low is 57, the new high is 63.
-// 4.  63+57 / 2 = 60. The numbers match!
-// We needed four iterations to find our value.
-//
-// Finding the correct IP-address takes <2 micro-seconds on my Macbook Pro.
-// It takes about 20-21 iterations to find the correct IP.
 func (c *CountryIPData) AddrCountry(ip string) (country string) {
 	addr, err := netip.ParseAddr(ip)
 	if err != nil {
 		return ""
 	}
 
-	if addr.IsPrivate() {
-		return ""
-	}
+	var addrBytes = addr.As4()
+	node := c.root
+	var child *Node
 
-	var (
-		addrBytes = addr.As4()
-		addrInt   = binary.BigEndian.Uint32(addrBytes[:])
-		low       = 0
-		needle    = len(c.subnets) >> 1 // start searching in the middle of the slice
-		high      = len(c.subnets)
-	)
-
-	for range 30 {
-		subnet := c.subnets[needle]
-		// 	fmt.Println( "addr", addr.String(), "netAddr", subnet.netAddr, "needle", needle, "low", low, "high", high,)
-
-		if high-low == 1 && low > 0 {
-			return "" // No country matching, RFC1918
-		} else if addrInt < subnet.netAddr {
-			high = needle
-			needle = (low + high) >> 1
-			continue
-		} else if addrInt > subnet.lastAddr {
-			low = needle
-			needle = (low + high) >> 1
-			continue
+	for _, addrByte := range addrBytes {
+		for i := len(node.children) - 1; i >= 0; i-- {
+			child = node.children[i]
+			if addrByte < child.value {
+				continue
+			}
+			//fmt.Println(addrByte, child.value)
+			node = child
+			break
 		}
-		return c.countriesByCC[subnet.countryCode]
 	}
-	return ""
+	return c.countriesByCC[node.countryCode]
 }
