@@ -35,6 +35,11 @@ BenchmarkIPLookupV6 	 4209511	       288.2 ns/op
     country_ip_test.go:283: countryIP: 4 MB (8 bytes per entry)
     country_ip_test.go:288: entries: 607617
     country_ip_test.go:298: avg time per lookup: 288ns
+BenchmarkIPLookupV7 	   95426	     12395 ns/op
+--- BENCH: BenchmarkIPLookupV7
+    country_ip_test.go:327: countryIP: 35 MB (61 bytes per entry)
+    country_ip_test.go:332: entries: 607617
+    country_ip_test.go:342: avg time per lookup: 12.395µs
 PASS
 ok  	country-ip	12.723s
 ```
