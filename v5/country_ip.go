@@ -94,11 +94,9 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 	// Countries tend to use IP-ranges after each other.
 	// Combining adjacent ranges further reduce the number of entries
 	combinedSubnets := make([]IPv4SubnetCountry, 0, len(subnetCountries))
-	combIdx := -1
 	for i := range subnetCountries {
 		if i == 0 {
 			combinedSubnets = append(combinedSubnets, subnetCountries[i])
-			combIdx++
 			continue
 		}
 
@@ -106,7 +104,6 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		prev := subnetCountries[i-1]
 		if prev.countryCode != this.countryCode || prev.lastAddr+1 != this.netAddr {
 			combinedSubnets = append(combinedSubnets, this)
-			combIdx++
 			continue
 		}
 
@@ -121,7 +118,7 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		// 		fmt.Println(combNetIP, prevLastIP, "->", thisLastIP)
 
 		// extend existing IP-range instead of adding another entry
-		combinedSubnets[combIdx].lastAddr = this.lastAddr
+		combinedSubnets[len(combinedSubnets)-1].lastAddr = this.lastAddr
 	}
 
 	copyCombined := make([]IPv4SubnetCountry, len(combinedSubnets))

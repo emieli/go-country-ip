@@ -12,20 +12,9 @@ import (
 )
 
 type CountryIPData struct {
-	subnets       []IPv4SubnetCountry
+	subnets       []uint32
+	countryCodes  [][2]byte
 	countriesByCC map[[2]byte]string // An extra lookup but much more memory efficient
-}
-
-type IPv4SubnetCountry struct {
-	netAddr     uint32
-	countryCode [2]byte
-}
-
-func (s IPv4SubnetCountry) NetworkIP() string {
-	var netAddr [4]byte
-	binary.BigEndian.PutUint32(netAddr[:], s.netAddr)
-	prevNetIP := netip.AddrFrom4(netAddr)
-	return prevNetIP.String()
 }
 
 func NewCountryIPData() (*CountryIPData, error) {
@@ -48,15 +37,17 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		return fmt.Errorf("open ipinfo file: %v", err)
 	}
 
-	subnets := make([]IPv4SubnetCountry, 0, 1_000_000)
-	subnets = append(subnets, IPv4SubnetCountry{
-		netAddr:     0, // 0.0.0.0 - 0.255.255.255
-		countryCode: [2]byte{},
-	})
 	var prevSubnetLastAddr uint32 = 16777215
-	countryCode := [2]byte{}
-	scanner := bufio.NewScanner(ipInfoCSV)
+	var countryCode = [2]byte{}
 
+	subnets := make([]uint32, 0, 1_000_000)
+	countryCodes := make([][2]byte, 0, 1_000_000)
+
+	// Create initial 0.0.0.0 entry
+	subnets = append(subnets, 0)
+	countryCodes = append(countryCodes, countryCode)
+
+	scanner := bufio.NewScanner(ipInfoCSV)
 	for scanner.Scan() {
 		fields := strings.Split(scanner.Text(), ",")
 		if fields[0] == "network" {
@@ -78,34 +69,31 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 
 		// Convert subnet to IPv4SubnetCountry
 		subnetBytes := prefix.Addr().As4()
-		subnet := IPv4SubnetCountry{
-			netAddr:     binary.BigEndian.Uint32(subnetBytes[:]),
-			countryCode: countryCode,
-		}
-		subnetLastAddr := subnet.netAddr + 1<<(32-prefix.Bits()) - 1
+		subnetNetAddr := binary.BigEndian.Uint32(subnetBytes[:])
+		subnetLastAddr := subnetNetAddr + 1<<(32-prefix.Bits()) - 1
 
 		// subnets not adjacent, place a "empty-country" entry inbetween
-		if prevSubnetLastAddr+1 != subnet.netAddr {
+		if prevSubnetLastAddr+1 != subnetNetAddr {
 
 			// Create fill entry, filling in RFC1918 ranges etc
-			filler := IPv4SubnetCountry{
-				netAddr:     prevSubnetLastAddr + 1,
-				countryCode: [2]byte{},
-			}
-			// fmt.Println("fill", filler.NetworkIP())
-			subnets = append(subnets, filler)
+			subnets = append(subnets, prevSubnetLastAddr+1)
+			countryCodes = append(countryCodes, [2]byte{})
 
 			// Create this entry
 			// fmt.Println("add", subnet.NetworkIP(), string(subnet.countryCode[:]))
-			subnets = append(subnets, subnet)
+			subnets = append(subnets, subnetNetAddr)
+			countryCodes = append(countryCodes, countryCode)
+
 			prevSubnetLastAddr = subnetLastAddr
 			continue
 		}
 
 		// Subnets are adjacent but different countries
-		if subnets[len(subnets)-1].countryCode != subnet.countryCode {
+		if countryCodes[len(countryCodes)-1] != countryCode {
 			// fmt.Println("add", subnet.NetworkIP(), string(subnet.countryCode[:]))
-			subnets = append(subnets, subnet)
+			subnets = append(subnets, subnetNetAddr)
+			countryCodes = append(countryCodes, countryCode)
+
 			prevSubnetLastAddr = subnetLastAddr
 			continue
 		}
@@ -115,9 +103,18 @@ func (c *CountryIPData) parseIPInfoCSV() error {
 		prevSubnetLastAddr = subnetLastAddr
 	}
 
-	copySubnets := make([]IPv4SubnetCountry, len(subnets))
+	copySubnets := make([]uint32, len(subnets))
 	copy(copySubnets, subnets)
 	c.subnets = copySubnets
+
+	copyCountryCodes := make([][2]byte, len(countryCodes))
+	copy(copyCountryCodes, countryCodes)
+	c.countryCodes = copyCountryCodes
+
+	if len(c.subnets) != len(c.countryCodes) {
+		return fmt.Errorf("length mismatch: %d != %d", len(c.subnets), len(c.countryCodes))
+	}
+
 	return nil
 }
 
@@ -149,26 +146,32 @@ func (c *CountryIPData) AddrCountry(ip string) (country string) {
 	)
 
 	for range 30 {
-		subnet := c.subnets[needle]
-		// 	fmt.Println( "addr", addr.String(), "netAddr", subnet.netAddr, "needle", needle, "low", low, "high", high,)
-
-		if addrInt < subnet.netAddr {
+		if addrInt < c.subnets[needle] {
 			high = needle
 			needle = (low + high) >> 1
 			continue
 		}
 
 		if needle == len(c.subnets)-1 {
-			return c.countriesByCC[subnet.countryCode]
+			countryCode := c.countryCodes[needle]
+			return c.countriesByCC[countryCode]
 		}
 
-		if addrInt > c.subnets[needle+1].netAddr {
+		if addrInt > c.subnets[needle+1] {
 			low = needle
 			needle = (low + high) >> 1
 			continue
 		}
 
-		return c.countriesByCC[subnet.countryCode]
+		countryCode := c.countryCodes[needle]
+		return c.countriesByCC[countryCode]
 	}
 	return ""
+}
+
+func NetworkIP(netAddr uint32) string {
+	var netAddrBytes [4]byte
+	binary.BigEndian.PutUint32(netAddrBytes[:], netAddr)
+	prevNetIP := netip.AddrFrom4(netAddrBytes)
+	return prevNetIP.String()
 }
