@@ -1,3 +1,6 @@
+# Context
+Read the accompanying blog post here: [https://blog.golle.org/posts/Golang/Optimizing blog GeoIP DB](https://blog.golle.org/posts/Golang/Optimizing%20blog%20GeoIP%20DB)
+
 # Benchmarks
 ```
 $ go test -bench=. -cpu=1
